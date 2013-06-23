@@ -2,7 +2,8 @@
 """
 import numpy as np
 import pandas as pd
-from sklearn.cross_validation import KFold
+import pylab as pl
+from sklearn.cross_validation import KFold, train_test_split
 from plotting import PlotROC
 from sklearn.metrics import roc_curve, auc
 # Author: Nick Kridler
@@ -33,5 +34,28 @@ class Classifier(object):
 		PlotROC(self.y,y_[:,1])
 
 		np.savetxt(out,y_[:,1],delimiter=',')
+
+	def holdout(self,clf,nFolds=20,fraction=0.3,seed=1337):
+		""""""
+		meanAuc = 0.
+		pl.figure()
+		for i in xrange(nFolds):
+			xTrain, xCV, yTrain, yCV = train_test_split(self.X,
+														self.y,
+														test_size=fraction,
+														random_state=i*seed)
+
+			clf.fit(xTrain,yTrain)
+			y_ = clf.predict_proba(xCV)[:,1]
+
+			fpr, tpr, threshold = roc_curve(yCV,y_)
+			rocAuc = auc(fpr,tpr)
+
+			print "AUC (fold %d/%d): %f" %(i+1,nFolds,rocAuc)
+			meanAuc += rocAuc
+			PlotROC(yCV,y_)
+		pl.show()
+
+		print "Mean AUC: %f" % (meanAuc/nFolds)
 
 

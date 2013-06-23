@@ -30,16 +30,20 @@ def binaryHistogram(df,x,y,xlim=[],params={},labels={}):
 	pl.show()
 
 
-def PlotROC(truth, prediction):
+def PlotROC(truth, prediction, printAuc=False):
 	"""Plot a roc curve"""
 	fpr, tpr, thresholds = roc_curve(truth, prediction)
 
-	roc_auc = auc(fpr,tpr)
-	print "Area under the curve: %f" % roc_auc
-	pl.plot(fpr, tpr, label='ROC curve (area = %0.2f)' % roc_auc, lw=3)
+	params = {'lw':3}
+	if printAuc:
+		roc_auc = auc(fpr,tpr)
+		print "Area under the curve: %f" % roc_auc
+		params['label'] = 'ROC curve (area = %0.2f)' % roc_auc
+	pl.plot(fpr, tpr, **params)
 	pl.ylim([0.0, 1.0])
 	pl.xlim([0.0, 1.0])
 	pl.xlabel('PFA')
 	pl.ylabel('PD')
-	pl.legend(loc="lower right")
+	if printAuc:
+		pl.legend(loc="lower right")
 	return			
