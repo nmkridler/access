@@ -89,7 +89,7 @@ def threshold(df, fraction=1.0):
 		return df 
 	
 	for c in h:
-		df = sortAndMerge(df,fraction=fraction)
+		df = sortAndMerge(df,c,fraction=fraction)
 
 	df = df.ix[:,[c for c in df.columns if c not in h]]
 	df = df.rename(columns=col)
@@ -101,11 +101,11 @@ class Fileio(object):
 		# Read all the data
 		df = pd.read_csv(filename)
 
-		self.df = threshold(df.copy())
+		self.df = threshold(df.copy(),fraction=1.0)
 
 		if usePairs:
 			pairs = buildPairs(df.columns)
-			self.df = pd.merge(self.df,addBigrams(df.copy(),pairs,fraction=0.5),how='inner',on='ID')
+			self.df = pd.merge(self.df,addBigrams(df.copy(),pairs,fraction=1.0),how='inner',on='ID')
 
 		if useTrips:
 			trips = buildTrips(df.columns)
@@ -113,6 +113,15 @@ class Fileio(object):
 
 		# Create a OneHotEncoder
 		self.encoder = OneHotEncoder()
+		usecols = [c for c in self.df.columns if c != 'ID']
+		features = [0, 8, 9, 10, 19, 34, 36, 37,
+					38, 41, 42, 43, 47, 53, 55, 60,
+					61, 63, 64, 67, 69, 71, 75, 81, 82, 85]
+		features = [0, 8] + [f+1 for f in features[2:]]
+		#usecols = [f+1 for f in features])
+		#self.df = self.df.ix[:,features]
+		#print self.df.columns
+
 		usecols = [c for c in self.df.columns if c != 'ID']
 		self.encoder.fit(np.array(self.df.ix[:,usecols],dtype='float'))
 

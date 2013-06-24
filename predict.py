@@ -20,23 +20,23 @@ def writeSubmission(y,filename='submission.csv'):
 
 def main():
 
-	f = fileio.Fileio('../data/alldata.csv',useTrips=False)
+	f = fileio.Fileio('../data/alldata.csv',usePairs=False,useTrips=True)
 	train, truth = f.transformTrain('../data/train.csv')
 
 	c = classifier.Classifier(train, truth)
-	#clf = LogisticRegression(C=3)
+	#clf = LogisticRegression(C=2.3,class_weight='auto')
 	params = {'loss':'log','penalty':'l2','alpha':0.0001,'n_iter':30,
-		'shuffle':True,'random_state':1337}
+		'shuffle':True,'random_state':1337,'class_weight':None}
 	clf = SGDClassifier(**params)
-	#c.validate(clf,nFolds=10,out='sgdBase30.csv')
-	c.holdout(clf,nFolds=20,fraction=0.2)
+	c.validate(clf,nFolds=4,out='sgd622sub1.csv')
+	c.holdout(clf,nFolds=10,fraction=0.2)
 
 	if False:
 		test = f.transformTest('../data/test.csv')
 		print test.shape
 		clf.fit(train,truth)
 		y_ = clf.predict_proba(test)[:,1]
-		writeSubmission(y_,filename='out.csv')
+		writeSubmission(y_,filename='624.csv')
 
 	
 if __name__=="__main__":
