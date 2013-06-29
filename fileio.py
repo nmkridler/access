@@ -6,7 +6,7 @@ from sklearn.preprocessing import OneHotEncoder
 
 NUMTRAIN = 32769
 NUMTEST = 58921
-
+IGNORETHESE = ['RESOURCE.MGR_ID.ROLE_ROLLUP_1', 'RESOURCE.MGR_ID.ROLE_FAMILY', 'RESOURCE.ROLE_FAMILY_DESC.ROLE_FAMILY']
 def addIDColumn(df):
 	"""Add an id column for joining later"""
 	df['ID'] = map(lambda x: "%s.%06i"%(x[0],x[1]),
@@ -34,11 +34,26 @@ def sortAndMerge(df,key,fraction=0.42):
 	""" Sort by column counts and merge to data frame"""
 	# Sort the unique values by counts
 	y = df[key].value_counts().order()[::-1]
+	index = np.arange(y.size,dtype='int32')
+
+	if key == 'RESOURCE.MGR_ID.ROLE_FAMILY':
+		fraction = 1.0
+	if key == 'RESOURCE.ROLE_FAMILY_DESC.ROLE_FAMILY':
+		fraction = 1.0
+	#if key == 'RESOURCE.ROLE_ROLLUP_2.ROLE_DEPTNAME':
+	#	fraction = 0.2	
 
 	# Take the top N percent
-	counts = int(y.size*fraction)
-	index = np.arange(y.size,dtype='int32')
-	index[counts:] = counts
+	if fraction < 1.0:
+		counts = int(y.size*fraction)
+		while counts > 1:
+			if y.values[counts-1] == y.values[counts]:
+				counts -= 1
+			else:
+				break
+		if key not in IGNORETHESE[1:] :
+			index[counts:] = counts
+
 
 	df = pd.merge(df,
 		pd.DataFrame({key:y.index,key+'Ids':index}),
@@ -55,7 +70,7 @@ def addTrigrams(df,pairs,fraction=0.42):
 		keys.append(key)
 
 		# Create a new column containing the combo
-		df[key] = map(lambda x: '%i,%i,%i'%(x[0],x[1],x[2]),
+		df[key] = map(lambda x: '%i.%i.%i'%(x[0],x[1],x[2]),
 			zip(df[pair[0]],df[pair[1]],df[pair[2]]))
 
 		df = sortAndMerge(df,key,fraction=fraction)
@@ -73,7 +88,7 @@ def addBigrams(df,pairs,fraction=0.5):
 		keys.append(key)
 
 		# Create a new column containing the combo
-		df[key] = map(lambda x: '%i,%i'%(x[0],x[1]),
+		df[key] = map(lambda x: '%i.%i'%(x[0],x[1]),
 			zip(df[pair[0]],df[pair[1]]))
 
 		df = sortAndMerge(df,key,fraction=fraction)
@@ -97,10 +112,42 @@ def threshold(df, fraction=1.0):
 
 class Fileio(object):
 	""" Fileio helper """
-	def __init__(self,filename='',usePairs=False,useTrips=False):
-		# Read all the data
-		df = pd.read_csv(filename)
+	def __init__(self, train='../data/train.csv', test='../data/test.csv'):
+		# Create a OneHotEncoder
+		self.encoder = OneHotEncoder()
+		self.trainDF = pd.read_csv(train,usecols=[0])
+		self.trainDF['ID'] = map(lambda x: "%s.%06i"%(x[0],x[1]), zip(['train']*NUMTRAIN, range(NUMTRAIN)))
 
+		self.testDF = pd.read_csv(test)
+		self.testDF['ID'] = map(lambda x: "%s.%06i"%(x[0],x[1]), zip(['test']*NUMTEST, range(NUMTEST)))
+
+	def encode(self,usecols):
+		self.encoder.fit(np.array(self.df.ix[:,usecols],dtype='float'))
+
+	def transformTrain(self,cols):
+		""" Transform the training set"""
+		#df = pd.read_csv(filename,usecols=range(9))
+		#df['ID'] = map(lambda x: "%s.%06i"%(x[0],x[1]), zip(['train']*NUMTRAIN, range(NUMTRAIN)))
+	
+		x = pd.merge(self.trainDF,self.df.ix[:,[8]+cols],how='left',on='ID',sort=False)
+		ignore = ['ID','ACTION']
+		usecols = [c for c in x.columns if c not in ignore]
+		return self.encoder.transform(np.array(x.ix[:,usecols],dtype='float')), np.array(x.ACTION)
+
+	def transformTest(self,cols):
+		""" Transform the testing set"""
+
+		x = pd.merge(self.testDF.ix[:,['ID','ROLL_CODE']],self.df.ix[:,[8]+cols]
+			,how='left',on='ID',sort=False)
+		ignore = ['ID','ROLL_CODE']
+		usecols = [c for c in x.columns if c not in ignore]
+		return self.encoder.transform(np.array(x.ix[:,usecols],dtype='float'))
+
+class RawInput(Fileio):
+	""" Raw data """
+	def __init__(self,filename='',usePairs=False,useTrips=False):
+		Fileio.__init__(self)
+		df = pd.read_csv(filename)
 		self.df = threshold(df.copy(),fraction=1.0)
 
 		if usePairs:
@@ -109,41 +156,14 @@ class Fileio(object):
 
 		if useTrips:
 			trips = buildTrips(df.columns)
-			self.df = pd.merge(self.df,addTrigrams(df.copy(),trips,fraction=0.42),how='inner',on='ID')
+			self.df = pd.merge(self.df,addTrigrams(df.copy(),trips,fraction=0.5),how='inner',on='ID')
 
-		# Create a OneHotEncoder
-		self.encoder = OneHotEncoder()
-		usecols = [c for c in self.df.columns if c != 'ID']
-		features = [0, 8, 9, 10, 19, 34, 36, 37,
-					38, 41, 42, 43, 47, 53, 55, 60,
-					61, 63, 64, 67, 69, 71, 75, 81, 82, 85]
-		features = [0, 8] + [f+1 for f in features[2:]]
-		#usecols = [f+1 for f in features])
-		#self.df = self.df.ix[:,features]
-		#print self.df.columns
+class Preprocessed(Fileio):
+	""" Preprocessed data """
+	def __init__(self,filename='',train='../data/train.csv',test='../data/test.csv'):
+		Fileio.__init__(self,train,test)
+		self.df = pd.read_csv(filename)
 
-		usecols = [c for c in self.df.columns if c != 'ID']
-		self.encoder.fit(np.array(self.df.ix[:,usecols],dtype='float'))
-
-	def transformTrain(self,filename):
-		""" Transform the training set"""
-		df = pd.read_csv(filename,usecols=range(9))
-		df['ID'] = map(lambda x: "%s.%06i"%(x[0],x[1]), zip(['train']*NUMTRAIN, range(NUMTRAIN)))
-	
-		x = pd.merge(df.ix[:,['ID','ACTION']],self.df,how='left',on='ID',sort=False)
-		ignore = ['ID','ACTION']
-		usecols = [c for c in x.columns if c not in ignore]
-		return self.encoder.transform(np.array(x.ix[:,usecols],dtype='float')), np.array(x.ACTION)
-
-	def transformTest(self,filename):
-		""" Transform the testing set"""
-		df = pd.read_csv(filename)
-		df['ID'] = map(lambda x: "%s.%06i"%(x[0],x[1]), zip(['test']*NUMTEST, range(NUMTEST)))
-
-		x = pd.merge(df.ix[:,['ID','ROLL_CODE']],self.df,how='left',on='ID',sort=False)
-		ignore = ['ID','ROLL_CODE']
-		usecols = [c for c in x.columns if c not in ignore]
-		return self.encoder.transform(np.array(x.ix[:,usecols],dtype='float'))
 
 
 
