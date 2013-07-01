@@ -1,0 +1,38 @@
+submissions:
+
+622: 
+SGDClassifier(loss='log',penalty='l2',alpha=0.0001,n_iter=30,shuffle=True,random_state=1337) 
+take top 42% of trigram features
+CV: 0.889389
+
+628:
+Columns:
+[0, 7, 9, 10, 11, 32, 37, 42, 43, 48, 57, 60, 63, 64, 65, 66, 67, 68, 70, 72, 80, 83, 86, 89]
+Logistic Regression C = 2.3, class_weight='auto'
+CV: 0.907566
+
+629:
+Columns:
+[70, 92, 9, 53, 89, 40, 67, 7, 62, 11, 32, 65, 48, 19, 37, 86, 0, 68]
+Logistic Regression C = 2.3, class_weight='auto'
+CV: 0.907908
+
+
+630Quad Cut at 0.5:
+Columns:
+[105, 66, 32, 10, 138, 99, 141, 42, 124, 34, 143, 103, 107, 144, 11, 7, 59, 161, 48, 19, 37, 158, 0, 139]
+Logistic Regression C = 2.3, class_weight='auto'
+CV: 0.909219 (10Fold), 10 iteration 20%: 0.9056306
+Submitted: 0.91607
+Blend with 622 -> 0.91693
+Training Blend -> results are very uncorrelated but simple blend doesnt boost
+CV: 0.909110 (Need a better way to estimate boost?)
+
+Quad Cut at 0.25
+[67, 82, 130, 143, 32, 10, 60, 42, 98, 162, 48, 68, 128, 93, 86, 65, 11, 7, 64, 120, 69, 34, 84, 37, 70, 0]
+CV: 0.909655 (10Fold), 10 iteration 20%: 0.9062426
+
+701Trips Variable cuts: tripsFractions.csv
+[98,336,294,19,205,290,226,211,244,38,9,208,18,35,148,295,341,262,12,210, 233, 338, 0, 320]
+CV: 0.9104 (10Fold), 10 iteration 20%: 0.9076
+Blended with 622: 0.91920

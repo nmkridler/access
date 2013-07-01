@@ -30,16 +30,26 @@ def buildTrips(x):
 				pairs.append([x[i],x[j],x[k]])	
 	return pairs
 
+def buildQuads(x):
+	"""Category Triplets"""
+	pairs = []
+	for i in xrange(len(x)):
+		for j in xrange(i+1,len(x)): 
+			for k in xrange(j+1,len(x)):
+				for l in xrange(k+1,len(x)):
+					pairs.append([x[i],x[j],x[k],x[l]])	
+	return pairs
+
 def sortAndMerge(df,key,fraction=0.42):
 	""" Sort by column counts and merge to data frame"""
 	# Sort the unique values by counts
 	y = df[key].value_counts().order()[::-1]
 	index = np.arange(y.size,dtype='int32')
 
-	if key == 'RESOURCE.MGR_ID.ROLE_FAMILY':
-		fraction = 1.0
-	if key == 'RESOURCE.ROLE_FAMILY_DESC.ROLE_FAMILY':
-		fraction = 1.0
+	#if key == 'RESOURCE.MGR_ID.ROLE_FAMILY':
+	#	fraction = 1.0
+	#if key == 'RESOURCE.ROLE_FAMILY_DESC.ROLE_FAMILY':
+	#	fraction = 1.0
 	#if key == 'RESOURCE.ROLE_ROLLUP_2.ROLE_DEPTNAME':
 	#	fraction = 0.2	
 
@@ -54,11 +64,28 @@ def sortAndMerge(df,key,fraction=0.42):
 		if key not in IGNORETHESE[1:] :
 			index[counts:] = counts
 
-
+	suffix = 'Ids%03i'%(int(fraction*100))
 	df = pd.merge(df,
-		pd.DataFrame({key:y.index,key+'Ids':index}),
+		pd.DataFrame({key:y.index,key+suffix:index}),
 		how='inner',on=key,sort=False)
 	return df
+
+def add4grams(df,pairs,fraction=0.42):
+	""" Turn trigrams into unique columns """
+	keys = [ col for col in df.columns]
+	df = addIDColumn(df)
+	for pair in pairs:
+		# Make a key using the column names
+		key = '%s.%s.%s.%s'%(pair[0],pair[1],pair[2],pair[3])
+		keys.append(key)
+
+		# Create a new column containing the combo
+		df[key] = map(lambda x: '%i.%i.%i.%i'%(x[0],x[1],x[2],x[3]),
+			zip(df[pair[0]],df[pair[1]],df[pair[2]],df[pair[3]]))
+
+		df = sortAndMerge(df,key,fraction=fraction)
+
+	return df.ix[:,[c for c in df.columns if c not in keys]]
 
 def addTrigrams(df,pairs,fraction=0.42):
 	""" Turn trigrams into unique columns """
@@ -145,18 +172,31 @@ class Fileio(object):
 
 class RawInput(Fileio):
 	""" Raw data """
-	def __init__(self,filename='',usePairs=False,useTrips=False):
-		Fileio.__init__(self)
+	def __init__(self,filename='',usePairs=False,useTrips=False,useQuads=False,train='../data/train.csv',test='../data/test.csv'):
+		Fileio.__init__(self,train,test)
 		df = pd.read_csv(filename)
 		self.df = threshold(df.copy(),fraction=1.0)
 
 		if usePairs:
 			pairs = buildPairs(df.columns)
-			self.df = pd.merge(self.df,addBigrams(df.copy(),pairs,fraction=1.0),how='inner',on='ID')
+			self.df = pd.merge(self.df,addBigrams(df.copy(),pairs,fraction=0.25),how='inner',on='ID')
+			self.df = pd.merge(self.df,addBigrams(df.copy(),pairs,fraction=0.50),how='inner',on='ID')
+			self.df = pd.merge(self.df,addBigrams(df.copy(),pairs,fraction=0.75),how='inner',on='ID')
+			self.df = pd.merge(self.df,addBigrams(df.copy(),pairs,fraction=1.00),how='inner',on='ID')
 
 		if useTrips:
 			trips = buildTrips(df.columns)
-			self.df = pd.merge(self.df,addTrigrams(df.copy(),trips,fraction=0.5),how='inner',on='ID')
+			self.df = pd.merge(self.df,addTrigrams(df.copy(),trips,fraction=0.25),how='inner',on='ID')
+			self.df = pd.merge(self.df,addTrigrams(df.copy(),trips,fraction=0.50),how='inner',on='ID')
+			self.df = pd.merge(self.df,addTrigrams(df.copy(),trips,fraction=0.75),how='inner',on='ID')
+			self.df = pd.merge(self.df,addTrigrams(df.copy(),trips,fraction=1.00),how='inner',on='ID')
+
+		if useQuads:
+			quads = buildQuads(df.columns)
+			self.df = pd.merge(self.df,add4grams(df.copy(),quads,fraction=0.25),how='inner',on='ID')
+			self.df = pd.merge(self.df,add4grams(df.copy(),quads,fraction=0.50),how='inner',on='ID')
+			self.df = pd.merge(self.df,add4grams(df.copy(),quads,fraction=0.75),how='inner',on='ID')
+			self.df = pd.merge(self.df,add4grams(df.copy(),quads,fraction=1.00),how='inner',on='ID')
 
 class Preprocessed(Fileio):
 	""" Preprocessed data """
