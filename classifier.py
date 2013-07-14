@@ -3,9 +3,10 @@
 import numpy as np
 import pandas as pd
 import pylab as pl
-from sklearn.cross_validation import KFold, train_test_split
+from sklearn.cross_validation import KFold, train_test_split, StratifiedKFold
 from plotting import PlotROC, PlotDensity
 from sklearn.metrics import roc_curve, auc
+from sklearn.cross_validation import StratifiedShuffleSplit
 # Author: Nick Kridler
 
 class Classifier(object):
@@ -17,6 +18,7 @@ class Classifier(object):
 
 	def validate(self,clf,nFolds=10,out='out.csv'):
 		""""""
+		#kf = StratifiedKFold(self.y,n_folds=nFolds,indices=False)
 		kf = KFold(len(self.y),n_folds=nFolds,indices=False,shuffle=True,random_state=1337)
 		y_ = np.empty(len(self.y))
 		mean_auc = 0.
@@ -38,6 +40,18 @@ class Classifier(object):
 		PlotDensity(y_[self.y==1],'H1',minval=0,maxval=1)
 		pl.show()
 		np.savetxt(out,y_,delimiter=',')
+
+	def stratifiedHoldout(self,clf,nFolds=20,fraction=0.3,seed=1337):
+		""""""
+		meanAuc = 0.
+		sss = StratifiedShuffleSplit(self.y,n_iter=nFolds,test_size=fraction)
+		for train, test in sss:
+			clf.fit(self.X[train,:],self.y[train])
+			y_ = clf.predict_proba(self.X[test,:])[:,1]
+			fpr, tpr, threshold = roc_curve(self.y[test],y_)
+			rocAuc = auc(fpr,tpr)
+			meanAuc += rocAuc
+		return meanAuc/nFolds
 
 	def holdout(self,clf,nFolds=20,fraction=0.3,seed=1337):
 		""""""

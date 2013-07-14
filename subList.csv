@@ -1,0 +1,6 @@
+train,test
+log708Train.csv,708logTest.csv
+log709Train.csv,709logTest.csv
+nbTrain.csv,nb_predict.csv
+log701.csv,701LogTrips.csv
+gbm234Train.csv,gbm234Test.csv

@@ -61,8 +61,7 @@ def sortAndMerge(df,key,fraction=0.42):
 				counts -= 1
 			else:
 				break
-		if key not in IGNORETHESE[1:] :
-			index[counts:] = counts
+		index[counts:] = counts
 
 	suffix = 'Ids%03i'%(int(fraction*100))
 	df = pd.merge(df,
@@ -134,7 +133,7 @@ def threshold(df, fraction=1.0):
 		df = sortAndMerge(df,c,fraction=fraction)
 
 	df = df.ix[:,[c for c in df.columns if c not in h]]
-	df = df.rename(columns=col)
+	#df = df.rename(columns=col)
 	return df
 
 class Fileio(object):
@@ -156,7 +155,7 @@ class Fileio(object):
 		#df = pd.read_csv(filename,usecols=range(9))
 		#df['ID'] = map(lambda x: "%s.%06i"%(x[0],x[1]), zip(['train']*NUMTRAIN, range(NUMTRAIN)))
 	
-		x = pd.merge(self.trainDF,self.df.ix[:,[8]+cols],how='left',on='ID',sort=False)
+		x = pd.merge(self.trainDF,self.df.ix[:,[0]+cols],how='left',on='ID',sort=False)
 		ignore = ['ID','ACTION']
 		usecols = [c for c in x.columns if c not in ignore]
 		return self.encoder.transform(np.array(x.ix[:,usecols],dtype='float')), np.array(x.ACTION)
@@ -164,7 +163,7 @@ class Fileio(object):
 	def transformTest(self,cols):
 		""" Transform the testing set"""
 
-		x = pd.merge(self.testDF.ix[:,['ID','ROLL_CODE']],self.df.ix[:,[8]+cols]
+		x = pd.merge(self.testDF.ix[:,['ID','ROLL_CODE']],self.df.ix[:,[0]+cols]
 			,how='left',on='ID',sort=False)
 		ignore = ['ID','ROLL_CODE']
 		usecols = [c for c in x.columns if c not in ignore]
@@ -175,36 +174,36 @@ class RawInput(Fileio):
 	def __init__(self,filename='',usePairs=False,useTrips=False,useQuads=False,train='../data/train.csv',test='../data/test.csv'):
 		Fileio.__init__(self,train,test)
 		df = pd.read_csv(filename)
-		self.df = threshold(df.copy(),fraction=1.0)
+
+		x = np.linspace(.1,1.,10)
+		for xx in x:
+			self.df = threshold(df.copy(),fraction=xx)
 
 		if usePairs:
 			pairs = buildPairs(df.columns)
-			self.df = pd.merge(self.df,addBigrams(df.copy(),pairs,fraction=0.25),how='inner',on='ID')
-			self.df = pd.merge(self.df,addBigrams(df.copy(),pairs,fraction=0.50),how='inner',on='ID')
-			self.df = pd.merge(self.df,addBigrams(df.copy(),pairs,fraction=0.75),how='inner',on='ID')
-			self.df = pd.merge(self.df,addBigrams(df.copy(),pairs,fraction=1.00),how='inner',on='ID')
+			for xx in x:
+				self.df = pd.merge(self.df,addBigrams(df.copy(),pairs,fraction=xx),how='inner',on='ID')
 
 		if useTrips:
 			trips = buildTrips(df.columns)
-			self.df = pd.merge(self.df,addTrigrams(df.copy(),trips,fraction=0.25),how='inner',on='ID')
-			self.df = pd.merge(self.df,addTrigrams(df.copy(),trips,fraction=0.50),how='inner',on='ID')
-			self.df = pd.merge(self.df,addTrigrams(df.copy(),trips,fraction=0.75),how='inner',on='ID')
-			self.df = pd.merge(self.df,addTrigrams(df.copy(),trips,fraction=1.00),how='inner',on='ID')
+			for xx in x:
+				self.df = pd.merge(self.df,addTrigrams(df.copy(),trips,fraction=xx),how='inner',on='ID')
 
+		base = [8, 315, 344, 293, 798, 310, 739, 547, 511, 794,105,500, 709, 122, 74, 7, 362, 28, 596, 737,845, 546, 748, 0, 706, 618, 37, 799, 600]
+		self.df = self.df.ix[:,base]
 		if useQuads:
 			quads = buildQuads(df.columns)
-			self.df = pd.merge(self.df,add4grams(df.copy(),quads,fraction=0.25),how='inner',on='ID')
-			self.df = pd.merge(self.df,add4grams(df.copy(),quads,fraction=0.50),how='inner',on='ID')
-			self.df = pd.merge(self.df,add4grams(df.copy(),quads,fraction=0.75),how='inner',on='ID')
-			self.df = pd.merge(self.df,add4grams(df.copy(),quads,fraction=1.00),how='inner',on='ID')
+			for xx in x:
+				self.df = pd.merge(self.df,add4grams(df.copy(),quads,fraction=xx),how='inner',on='ID')
+			#self.df = pd.merge(self.df,add4grams(df.copy(),quads,fraction=0.50),how='inner',on='ID')
+			#self.df = pd.merge(self.df,add4grams(df.copy(),quads,fraction=0.75),how='inner',on='ID')
+			#self.df = pd.merge(self.df,add4grams(df.copy(),quads,fraction=1.00),how='inner',on='ID')
 
 class Preprocessed(Fileio):
 	""" Preprocessed data """
-	def __init__(self,filename='',train='../data/train.csv',test='../data/test.csv'):
+	def __init__(self,filename='',train='../data/train.csv',test='../data/test.csv', cols=[]):
 		Fileio.__init__(self,train,test)
-		self.df = pd.read_csv(filename)
-
-
-
-
-
+		if len(cols) == 0:
+			self.df = pd.read_csv(filename)
+		else:
+			self.df = pd.read_csv(filename,usecols=cols)
