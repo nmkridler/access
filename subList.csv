@@ -1,6 +1,7 @@
 train,test
+rfQTrain.csv,rfQTest.csv
+gbmQTrain.csv,gbmQTest.csv
+log10ThreshTrain.csv,log10ThreshTest.csv
 log708Train.csv,708logTest.csv
 log709Train.csv,709logTest.csv
-nbTrain.csv,nb_predict.csv
 log701.csv,701LogTrips.csv
-gbm234Train.csv,gbm234Test.csv

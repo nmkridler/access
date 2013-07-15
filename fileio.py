@@ -46,12 +46,10 @@ def sortAndMerge(df,key,fraction=0.42):
 	y = df[key].value_counts().order()[::-1]
 	index = np.arange(y.size,dtype='int32')
 
-	#if key == 'RESOURCE.MGR_ID.ROLE_FAMILY':
-	#	fraction = 1.0
-	#if key == 'RESOURCE.ROLE_FAMILY_DESC.ROLE_FAMILY':
-	#	fraction = 1.0
-	#if key == 'RESOURCE.ROLE_ROLLUP_2.ROLE_DEPTNAME':
-	#	fraction = 0.2	
+	counts = np.sum(y.values >= fraction)
+	if counts == 0:
+		return df
+	index[counts:] = counts
 
 	# Take the top N percent
 	if fraction < 1.0:
@@ -63,7 +61,8 @@ def sortAndMerge(df,key,fraction=0.42):
 				break
 		index[counts:] = counts
 
-	suffix = 'Ids%03i'%(int(fraction*100))
+	#suffix = 'Ids%03i'%(int(fraction*100))
+	suffix = 'Ids'
 	df = pd.merge(df,
 		pd.DataFrame({key:y.index,key+suffix:index}),
 		how='inner',on=key,sort=False)
@@ -175,7 +174,7 @@ class RawInput(Fileio):
 		Fileio.__init__(self,train,test)
 		df = pd.read_csv(filename)
 
-		x = np.linspace(.1,1.,10)
+		x = [10] #np.linspace(.1,1.,10)
 		for xx in x:
 			self.df = threshold(df.copy(),fraction=xx)
 
@@ -189,8 +188,8 @@ class RawInput(Fileio):
 			for xx in x:
 				self.df = pd.merge(self.df,addTrigrams(df.copy(),trips,fraction=xx),how='inner',on='ID')
 
-		base = [8, 315, 344, 293, 798, 310, 739, 547, 511, 794,105,500, 709, 122, 74, 7, 362, 28, 596, 737,845, 546, 748, 0, 706, 618, 37, 799, 600]
-		self.df = self.df.ix[:,base]
+		#base = [8, 315, 344, 293, 798, 310, 739, 547, 511, 794,105,500, 709, 122, 74, 7, 362, 28, 596, 737,845, 546, 748, 0, 706, 618, 37, 799, 600]
+		#self.df = self.df.ix[:,base]
 		if useQuads:
 			quads = buildQuads(df.columns)
 			for xx in x:

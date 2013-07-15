@@ -27,24 +27,24 @@ def fopt(pars):
 	return -metrics.auc(fpr,tpr)
 
 
-cols = range(5)
+cols = range(6)
 trainD, testD = getData('subList.csv')
 y = np.array(pd.read_csv('../data/train.csv').ACTION)
 Xtrain = trainD[:,cols]
 
 from sklearn.linear_model import Ridge
-clf = Ridge(alpha=50.)
+clf = Ridge(alpha=400.)
 clf.fit(Xtrain,y)
 n = len(cols)
 x0 = clf.coef_
 x0 = (x0 - x0.min())/(x0.max() - x0.min())
 x0 /= np.sum(x0)
-xopt = optimize.minimize(fopt,x0,method='Nelder-Mead')
+#xopt = optimize.minimize(fopt,x0,method='Nelder-Mead')
 
-print -fopt(xopt.x)
-print xopt.x
+#print -fopt(xopt.x)
+#print xopt.x
 print -fopt(x0)
 print x0
-out = pd.read_csv('./subs/nb_predict.csv')
-out.ACTION = fopt_pred(xopt.x,testD[:,cols])
-out.to_csv('blend5.csv',index=False)
+#out = pd.read_csv('./subs/nb_predict.csv')
+#out.ACTION = fopt_pred(xopt.x,testD[:,cols])
+#out.to_csv('blend5.csv',index=False)

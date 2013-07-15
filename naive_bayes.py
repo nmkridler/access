@@ -187,7 +187,7 @@ def main(train_file='train.csv', test_file='test.csv', output_file='nb_predict.c
     return model
     
 if __name__=='__main__':
-    args = { 'train_file':  '../data/allQuadsFractions.csv',
+    args = { 'train_file':  '../data/quad10Fractions.csv',
              'test_file':   'test.csv',
              'output_file': 'nb_predict710.csv' }
     model = main(**args)
