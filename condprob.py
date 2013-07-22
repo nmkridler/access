@@ -39,7 +39,7 @@ def buildQuads(x):
 					pairs.append([x[i],x[j],x[k],x[l]])	
 	return pairs
 
-def sortAndMerge(df,key,truth,threshold=15):
+def sortAndMerge(df,key,truth,threshold=25):
 	""" Sort by column counts and merge to data frame"""
 	# Sort the unique values by counts
 	yHX = df.ix[:NUMTRAIN,key].value_counts().order()[::-1]
@@ -50,16 +50,17 @@ def sortAndMerge(df,key,truth,threshold=15):
 		return df
 	medVal = np.median(cP[yAll > threshold])
 	cP[yAll < threshold] = medVal
-	cpDF = pd.DataFrame({'id':yH1.index,'cp':cP})
+	cpDF = pd.DataFrame({'id':yH1.index,'cp':cP,'nulls':1*np.array(yAll < threshold)})
 
 	y = df[key].value_counts().order()[::-1]
 	allDF = pd.merge(cpDF,pd.DataFrame({'id':y.index,'counts':y}),
 		how='right',on='id',sort=False)
 	allDF.cp = allDF.cp.fillna(medVal)
+	allDF.nulls = allDF.nulls.fillna(1)
 
 	suffix = 'Ids'
 	df = pd.merge(df,
-		pd.DataFrame({key:allDF.id,key+suffix:allDF.cp}),
+		pd.DataFrame({key:allDF.id,key+suffix:allDF.cp,key+'.nulls':allDF.nulls}),
 		how='inner',on=key,sort=False)
 	return df
 

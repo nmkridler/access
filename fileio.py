@@ -46,11 +46,6 @@ def sortAndMerge(df,key,fraction=0.42):
 	y = df[key].value_counts().order()[::-1]
 	index = np.arange(y.size,dtype='int32')
 
-	counts = np.sum(y.values >= fraction)
-	if counts == 0:
-		return df
-	index[counts:] = counts
-
 	# Take the top N percent
 	if fraction < 1.0:
 		counts = int(y.size*fraction)
@@ -154,7 +149,7 @@ class Fileio(object):
 		#df = pd.read_csv(filename,usecols=range(9))
 		#df['ID'] = map(lambda x: "%s.%06i"%(x[0],x[1]), zip(['train']*NUMTRAIN, range(NUMTRAIN)))
 	
-		x = pd.merge(self.trainDF,self.df.ix[:,[0]+cols],how='left',on='ID',sort=False)
+		x = pd.merge(self.trainDF,self.df.ix[:,[8]+cols],how='left',on='ID',sort=False)
 		ignore = ['ID','ACTION']
 		usecols = [c for c in x.columns if c not in ignore]
 		return self.encoder.transform(np.array(x.ix[:,usecols],dtype='float')), np.array(x.ACTION)
@@ -162,7 +157,7 @@ class Fileio(object):
 	def transformTest(self,cols):
 		""" Transform the testing set"""
 
-		x = pd.merge(self.testDF.ix[:,['ID','ROLL_CODE']],self.df.ix[:,[0]+cols]
+		x = pd.merge(self.testDF.ix[:,['ID','ROLL_CODE']],self.df.ix[:,[8]+cols]
 			,how='left',on='ID',sort=False)
 		ignore = ['ID','ROLL_CODE']
 		usecols = [c for c in x.columns if c not in ignore]
@@ -174,7 +169,7 @@ class RawInput(Fileio):
 		Fileio.__init__(self,train,test)
 		df = pd.read_csv(filename)
 
-		x = [10] #np.linspace(.1,1.,10)
+		x = [1] #np.linspace(.1,1.,10)
 		for xx in x:
 			self.df = threshold(df.copy(),fraction=xx)
 

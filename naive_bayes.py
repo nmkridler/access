@@ -140,8 +140,17 @@ def main(train_file='train.csv', test_file='test.csv', output_file='nb_predict.c
     # Load data
     print 'Loading data...'
     #base = [3, 4, 17, 10, 123, 129, 292, 32, 9, 2, 7, 76, 5, 429, 663, 427, 308, 594, 13, 22, 279, 107, 360, 15, 557, 16, 583, 431, 23, 19, 724, 27, 425]
-    base = [15, 557, 16, 583, 431, 23, 19, 724, 27, 425]
-    #base = [183, 266, 211, 178, 70, 363, 329, 248, 331, 327, 368,365,66,184, 7, 261, 234, 47, 322, 216, 310,177,127,9,38,18,262,313,343,180,35,362,267,174,254,12,182,205,382,0,292]
+    #base = [15, 557, 16, 583, 431, 23, 19, 724, 27, 425]
+    #base = [289, 332, 201, 260, 235, 240, 38, 48, 18, 212, 63, 12, 205, 263, 65, 262, 0, 338, 122, 300, 98, 210, 295, 320]
+    #base = [313, 291, 151, 64, 67, 20, 290, 112, 155, 138, 18, 285, 66, 212, 233, 204, 7, 208, 68, 282, 0, 210, 9, 295, 317]
+
+    #base = [98,336,294,19,205,290,226,211,244,38,9,18,35,148,295,341,262,12,210, 233, 0, 320] # seed 1337
+    #base = [212,94, 47, 291, 81, 121, 205, 204, 295, 138, 7, 258, 210, 234, 282, 0, 320] # seed 918
+    #base = [240, 38, 48, 18, 212, 63, 12, 205, 263, 65, 262, 0, 338, 122, 300, 98, 210, 295, 320] # SGD
+    #base = [289, 332, 201, 260, 235, 240, 38, 48, 18, 212, 63, 12, 205, 263, 65, 262, 0, 338, 122, 300, 98, 210, 295, 320]
+    #base = [256, 302, 142, 243, 289, 341, 294, 104, 313, 135, 235, 204, 216, 38, 46, 332, 65, 268, 117, 207, 68, 208, 122, 0, 338, 318, 300, 308, 210, 295, 317]  #seed 213
+    #base = [313, 291, 151, 64, 67, 20, 290, 112, 155, 138, 18, 285, 66, 212, 233, 204, 7, 208, 68, 282, 0, 210, 9, 295, 317] # seed 622
+    base = [201, 294, 260, 67, 220, 235, 7, 176, 290, 48, 309, 156, 66, 263, 138, 262, 35, 18, 233, 208, 240, 338, 0, 210, 9, 295, 317] # seed 410
     allData = pd.read_csv(train_file,usecols=base)
     
     X = np.array(allData.ix[:32769,:])
@@ -154,7 +163,7 @@ def main(train_file='train.csv', test_file='test.csv', output_file='nb_predict.c
     print 'Transforming data...'
     #X = group_data(X)
     #X_test = group_data(X_test)
-    model = NaiveBayesClassifier(alpha=1e-10)
+    model = NaiveBayesClassifier(alpha=1e-2)#1e-10)
     
     nFolds = 10
     kf = KFold(len(y),n_folds=nFolds,indices=False,shuffle=True,random_state=1337)
@@ -171,7 +180,8 @@ def main(train_file='train.csv', test_file='test.csv', output_file='nb_predict.c
     print mean_auc/len(kf)
     plotting.PlotROC(y,y_,printAuc=True)
     pl.show()
-    np.savetxt('nbTrain710.csv',y_,delimiter=',')
+    prefix = 'lib/nbA1e2s410logSelect'
+    np.savetxt(prefix+'.csv',y_,delimiter=',')
 
     # Train model 
     print 'Training Naive Bayes Classifier...'
@@ -182,13 +192,14 @@ def main(train_file='train.csv', test_file='test.csv', output_file='nb_predict.c
     preds = model.log_predict(X_test)
     
     print 'Writing predictions to %s...' % (output_file)
+    output_file = prefix+'Test.csv'
     create_test_submission(output_file, preds)
 
     return model
     
 if __name__=='__main__':
-    args = { 'train_file':  '../data/quad10Fractions.csv',
+    args = { 'train_file':  '../data/tripsFractions.csv',
              'test_file':   'test.csv',
-             'output_file': 'nb_predict710.csv' }
+             'output_file': 'nb_predict7012.csv' }
     model = main(**args)
 

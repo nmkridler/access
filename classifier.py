@@ -18,8 +18,8 @@ class Classifier(object):
 
 	def validate(self,clf,nFolds=10,out='out.csv'):
 		""""""
-		kf = StratifiedKFold(self.y,n_folds=nFolds,indices=False)
-		#kf = KFold(len(self.y),n_folds=nFolds,indices=False,shuffle=True,random_state=1337)
+		#kf = StratifiedKFold(self.y,n_folds=nFolds,indices=False)
+		kf = KFold(len(self.y),n_folds=nFolds,indices=False,shuffle=True,random_state=1337)
 		y_ = np.empty(len(self.y))
 		mean_auc = 0.
 		rows = np.arange(self.X.shape[0])

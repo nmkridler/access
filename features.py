@@ -9,6 +9,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.linear_model import SGDClassifier
 from sklearn.ensemble import RandomForestClassifier
 from multiprocessing import Pool
+from sklearn.naive_bayes import BernoulliNB
 # 1st: 89: 0.899896
 # 2nd: 63: 0.900192
 # 3rd: 7: 0.900354
@@ -25,26 +26,37 @@ def writeSubmission(y,filename='submission.csv'):
 
 def featureScore(x):
 	fio, feats = x
-	#params = {'loss':'log','penalty':'l2','alpha':0.0001,'n_iter':20,
-	#	'shuffle':True,'random_state':1337,'class_weight':None}
-	#clf = SGDClassifier(**params)
-	clf = LogisticRegression(C=2.3,class_weight='auto')
+	params = {'loss':'log','penalty':'l2','alpha':0.0001,'n_iter':20,
+		'shuffle':True,'random_state':1337,'class_weight':None}
+	clf = SGDClassifier(**params)
+	#clf = LogisticRegression(C=2.3,class_weight='auto')
+	#clf = BernoulliNB(alpha=0.03)
 	fio.encode(feats)
 	train, truth = fio.transformTrain(feats)
 	c = classifier.Classifier(train,truth)
-	return c.stratifiedHoldout(clf,nFolds=10,fraction=0.2)
+	return c.holdout(clf,nFolds=10,fraction=0.2,seed=213)
 
 def MultiGreedy():
 	pool = Pool(processes=4)
-	fio = fileio.Preprocessed('../data/quads10Threshold.csv',
+	fio = fileio.Preprocessed('../data/tripsFractions.csv',
 			train='../data/train.csv',
 			test='../data/test.csv')
 
 	lastScore = 0
 	bestFeatures = []
-	allFeatures = range(1,fio.df.shape[1])
+	cols = [c.split('Ids')[0] for c in fio.df.columns]
+	cMap = {}
+	for i in xrange(len(cols)):
+		if cMap.get(cols[i]) == None:
+			cMap[cols[i]] = []
+		cMap[cols[i]].append(i)
+	allFeatures = [f for f in xrange(fio.df.shape[1]) if f != 8] #8 ID, or 0
+	ignoreSet = []
+	for feat in bestFeatures:
+		ignoreSet += cMap[cols[feat]]	
+
 	while True:
-		testFeatureSets = [[f] + bestFeatures for f in allFeatures if f not in bestFeatures]
+		testFeatureSets = [[f] + bestFeatures for f in allFeatures if f not in bestFeatures and f not in ignoreSet]
 		if len(testFeatureSets) == 0:
 			break
 		args = [(fio,fSet) for fSet in testFeatureSets]
@@ -56,6 +68,9 @@ def MultiGreedy():
 			break
 		lastScore = score
 		bestFeatures = featureSet
+		ignoreSet = []
+		for feat in featureSet:
+			ignoreSet += cMap[cols[feat]]
 
 	pool.close()
 	print bestFeatures
@@ -88,51 +103,42 @@ def MultiGreedyReduction():
 
 def Predict():
 	params = {'loss':'log','penalty':'l2','alpha':0.0001,'n_iter':30,
-		'shuffle':True,'random_state':1337,'class_weight':'auto'}
-	#clf = SGDClassifier(**params)
-	clf = LogisticRegression(C=1.8,class_weight='auto')
-	fio = fileio.Preprocessed('../data/quads10Threshold.csv')
-	base = [127, 96, 53, 3, 103, 71, 151, 1, 65, 152]
-	#params = {'n_estimators':50,'min_samples_split':5,'min_samples_leaf':5,'verbose':True,'n_jobs':4}
-	#clf = RandomForestClassifier(**params)	
-	#fio = fileio.RawInput('../data/alldata.csv',usePairs=True,useTrips=True,useQuads=True)
-	#fio.df.to_csv('../data/quads25Threshold.csv',index=False)
+		'shuffle':True,'random_state':1337,'class_weight':None}
+	clf = SGDClassifier(**params)
+	#clf = LogisticRegression(C=3)
+	#clf = BernoulliNB(alpha=0.0003)
+	#fio = fileio.Preprocessed('../data/tripsFractions.csv')
+	fio = fileio.RawInput('../data/alldata.csv',usePairs=True)
+	#base = [127, 96, 53, 3, 103, 71, 151, 1, 65, 152]
+	#base = [98,336,294,19,205,290,226,211,244,38,9,208,18,35,148,295,341,262,12,210, 233, 338, 0, 320]
+	#base = [98,336,294,19,205,290,226,211,244,38,9,18,35,148,295,341,262,12,210, 233, 0, 320] # seed 1337
+	#base = [212,94, 47, 291, 81, 121, 205, 204, 295, 138, 7, 258, 210, 234, 282, 0, 320] # seed 918
+	#base = [176, 127, 154, 63, 289, 209, 15, 226, 300, 205]
+	#base = [7, 204, 14, 96, 264, 294, 176, 127, 154, 63, 289, 209, 15, 226, 300, 205]
+	#base = [240, 38, 48, 18, 212, 63, 12, 205, 263, 65, 262, 0, 338, 122, 300, 98, 210, 295, 320] # SGD
+	#base = [289, 332, 201, 260, 235, 240, 38, 48, 18, 212, 63, 12, 205, 263, 65, 262, 0, 338, 122, 300, 98, 210, 295, 320]
+	#base = [256, 302, 142, 243, 289, 341, 294, 104, 313, 135, 235, 204, 216, 38, 46, 332, 65, 268, 117, 207, 68, 208, 122, 0, 338, 318, 300, 308, 210, 295, 317]  #seed 213
+	#base = [313, 291, 151, 64, 67, 20, 290, 112, 155, 138, 18, 285, 66, 212, 233, 204, 7, 208, 68, 282, 0, 210, 9, 295, 317] # seed 622
+	#base = [201, 294, 260, 67, 220, 235, 7, 176, 290, 48, 309, 156, 66, 263, 138, 262, 35, 18, 233, 208, 240, 338, 0, 210, 9, 295, 317] # seed 410
+	#base = [73, 8, 13, 68, 56, 11, 61, 36, 57, 34, 33, 66, 84, 1, 80, 2]
+	base = [f for f in xrange(fio.df.shape[1]) if f != 8]
+	#for b in base:
+	#	print "%d. %s" %(b,fio.df.columns[b])
 	#return
-	#base = [315, 344, 293, 798, 310, 739, 547, 511, 794,105,500, 709, 122, 74, 7, 362, 28, 596, 737,845, 546, 748, 0, 706, 618, 37, 799, 600]
-	#base = [123, 129, 292, 32, 9, 2, 7, 76, 5,429, 663,427,308,594, 13, 22, 279, 107, 360, 15, 557, 16, 583, 431, 23, 19, 724, 27, 425]
-	#base = [3, 4, 17, 10, 123, 129, 292, 32, 9, 2, 7, 76, 5, 429, 663, 427, 308, 594, 13, 22, 279, 107, 360, 15, 557, 16, 583, 431, 23, 19, 724, 27, 425]
-	#base = [ 15, 557, 16, 583, 431, 23, 19, 724, 27, 425]
-	#base = [3, 4, 17, 10, 123, 129, 292, 32, 2, 7, 76, 5, 429, 663, 427, 308, 594, 13, 22, 279, 107, 360, 15, 557, 16, 431, 23, 19, 724, 27]
-	#base = [0, 10, 11, 20, 37, 38, 39,	42, 43, 48, 54, 61, 62, 64, 65, 68, 70, 72, 82, 83, 86]
-	#base = range(8) + range(9,f.df.shape[1]-1)
-	#base = [32, 38, 72, 60, 10, 84, 54, 70, 9, 65, 14, 34, 64, 7, 59, 48, 89, 20, 37, 66, 0, 86, 19, 11, 68]
-	#base = [70, 92, 9, 53, 89, 40, 67, 7, 62, 11, 32, 65, 48, 19, 37, 86, 0, 68]
-	#base = [72, 59, 66, 10, 70, 92, 9, 53, 89, 40, 67, 7, 62, 11, 32, 65, 48, 19, 37, 86, 0, 68]
-	#base = [183, 266, 211, 178, 70, 363, 329, 248, 331, 327, 368,365,66,184, 7, 261, 234, 47, 322, 216, 310,177,127,9,38,18,262,313,343,180,35,362,267,174,254,12,182,205,382,0,292]
-	#base = [35,362,267,174,254,12,182,205,382,0,292]
-	#base = [212,98,336,294,19,205,290,226,211,244,38,9,208,18,35,148,295,341,262,12,210, 233, 338, 0, 320]
-	#base = [ x for x in xrange(fio.df.shape[1]) if x != 8]
-	#base = [67, 82, 130, 143, 32, 10, 60, 42, 98, 162, 48, 68, 128, 93, 86, 65, 11, 7, 64, 120, 69, 34, 84, 37, 70, 0]
-	#base = [9,146,98,105, 66, 32, 10, 138, 99, 141, 42, 124, 34, 143, 103, 107, 144, 11, 7, 59, 161, 48, 19, 37, 158, 0, 139]
-	#base = [0, 7, 9, 10, 11, 32, 37, 42, 43, 48, 57, 60, 63, 64, 65, 66, 67, 68, 70, 72, 80, 83, 86, 89]
-	#base = range(1,fio.df.shape[1])
-	#from sklearn.decomposition import NMF
-	#nmf = NMF(n_components=40)
 	fio.encode(base)
 	train, truth = fio.transformTrain(base)
-	#train = train.todense()
-	#train = nmf.fit_transform(train)
 	c = classifier.Classifier(train, truth)
-	c.validate(clf,nFolds=10,out='log10ThreshTrain.csv')
-	score = c.holdout(clf,nFolds=10,fraction=0.2)
-	print score
+	prefix = 'lib/sgdPairs'
+	c.validate(clf,nFolds=10,out=prefix+'.csv')
+	#score = c.holdout(clf,nFolds=10,fraction=0.2)
+	#print score
 
 	if True:
 		test = fio.transformTest(base)
 		print test.shape
 		clf.fit(train,truth)
 		y_ = clf.predict_proba(test)[:,1]
-		writeSubmission(y_,filename='log10ThresTest.csv')
+		writeSubmission(y_,filename=prefix+'Test.csv')
 		return
 
 
