@@ -2,38 +2,57 @@ import pylab as pl
 import numpy as np
 import pandas as pd
 import plotting
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.cross_validation import StratifiedShuffleSplit
 from sklearn.metrics import roc_curve, auc
 from sklearn.linear_model import LogisticRegression
-
+from sklearn.qda import QDA
 import classifier
 reload(classifier)
 def main():
+	makeSub = True
+	featureImportance = False
+	cvfold = True
+	df = pd.read_csv('../data/cprobTrain15NA.csv')
+	#id_ = np.loadtxt('indices.txt',delimiter=',').astype('int')[:60]
+	#X, y = np.array(df), np.array(pd.read_csv('../data/train.csv').ACTION)
+	X, y = np.array(pd.read_csv('../data/train.csv',usecols=range(1,9))), np.array(pd.read_csv('../data/train.csv').ACTION)
+	X = np.hstack((X,np.array(df)))
 
-	X, y = np.array(pd.read_csv('cprobTrain.csv')), np.array(pd.read_csv('../data/train.csv').ACTION)
-	#X, y = np.array(pd.read_csv('../data/train.csv',usecols=range(1,9))), np.array(pd.read_csv('../data/train.csv').ACTION)
-	#X = np.hstack((X,np.array(pd.read_csv('../data/cprobQuadsTrain.csv'))))
-	#X = np.hstack((X,np.array(pd.read_csv('cprobTrain.csv'))))
-
-	params = {'max_depth':8, 'subsample':0.5, 'verbose':0, 'random_state':1337,
-		'min_samples_split':5, 'min_samples_leaf':5, 'max_features':5,
+	params = {'max_depth':4, 'subsample':0.5, 'verbose':0, 'random_state':1337,
+		'min_samples_split':10, 'min_samples_leaf':10, 'max_features':10,
 		'n_estimators': 350, 'learning_rate': 0.05}	
-	#params = {'n_estimators':500,'min_samples_split':25,'min_samples_leaf':25,'verbose':True,'n_jobs':4}
+	#params = {'n_estimators':50,'min_samples_split':5,'min_samples_leaf':5,'verbose':True,'n_jobs':2,
+	#	'compute_importances':True, 'random_state':1337}
 	#clf = RandomForestClassifier(**params)
+	#clf = RandomForestRegressor(**params)
 	clf = GradientBoostingClassifier(**params)
-	c = classifier.Classifier(X,y)
-	c.validate(clf,nFolds=10,out='subs/gbmTrain.csv')
-	Xt = np.array(pd.read_csv('cprobTest.csv'))
-	#Xt = np.array(pd.read_csv('../data/test.csv',usecols=range(1,9)))
-	#Xt = np.hstack((Xt,np.array(pd.read_csv('../data/cprobQuadsTest.csv'))))
-	clf.fit(X,y)
-	y_ = clf.predict_proba(Xt)[:,1]
+	#clf = QDA()
+	prefix = 'lib/gbm350d4m10c15'
+	if cvfold:
+		c = classifier.Classifier(X,y)
+		c.validate(clf,nFolds=10,out=prefix+'Train.csv')
 
-	out = pd.read_csv('subs/nbBaseTest.csv')
-	out.ACTION = y_
-	out.to_csv('subs/gbmTest.csv',index=False)
+	if makeSub:
+		Xt = np.array(pd.read_csv('../data/test.csv',usecols=range(1,9)))
+		Xt = np.hstack((Xt,np.array(pd.read_csv('../data/cprobTest15NA.csv'))))
+		clf.fit(X,y)
+		y_ = clf.predict_proba(Xt)[:,1]
+		#y_ = clf.predict(Xt)
+		out = pd.read_csv('subs/nbBaseTest.csv')
+		out.ACTION = y_
+		out.to_csv(prefix+'Test.csv',index=False)
+
+	if featureImportance:
+		print "Feature ranking:"
+		importances = clf.feature_importances_
+		indices = np.argsort(importances)[::-1]
+		np.savetxt('indices.txt',indices,delimiter=',')
+		for f in xrange(df.shape[1]):
+			print "%d. feature (%s,%f)" % (f + 1, df.columns[indices[f]], importances[indices[f]])
+
+
 
 	
 if __name__=="__main__":

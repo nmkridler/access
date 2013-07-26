@@ -39,7 +39,7 @@ def buildQuads(x):
 					pairs.append([x[i],x[j],x[k],x[l]])	
 	return pairs
 
-def sortAndMerge(df,key,truth,threshold=25):
+def sortAndMerge(df,key,truth,threshold=15):
 	""" Sort by column counts and merge to data frame"""
 	# Sort the unique values by counts
 	yHX = df.ix[:NUMTRAIN,key].value_counts().order()[::-1]
@@ -153,5 +153,5 @@ class CondProb(object):
 		testDf = self.df.ix[self.df.type == 'test',:].sort(columns=['order'])
 		ignore = ['type','order','ID']
 		cols = [c for c in trainDf.columns if c not in ignore]
-		trainDf.ix[:,cols].to_csv('cprobTrain.csv',index=False)
-		testDf.ix[:,cols].to_csv('cprobTest.csv',index=False)
+		trainDf.ix[:,cols].to_csv('../data/cprobTrain15NATrips.csv',index=False)
+		testDf.ix[:,cols].to_csv('../data/cprobTest15NATrips.csv',index=False)

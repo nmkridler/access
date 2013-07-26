@@ -104,11 +104,11 @@ def MultiGreedyReduction():
 def Predict():
 	params = {'loss':'log','penalty':'l2','alpha':0.0001,'n_iter':30,
 		'shuffle':True,'random_state':1337,'class_weight':None}
-	clf = SGDClassifier(**params)
-	#clf = LogisticRegression(C=3)
+	#clf = SGDClassifier(**params)
+	clf = LogisticRegression(C=2.3,class_weight='auto')
 	#clf = BernoulliNB(alpha=0.0003)
-	#fio = fileio.Preprocessed('../data/tripsFractions.csv')
-	fio = fileio.RawInput('../data/alldata.csv',usePairs=True)
+	fio = fileio.Preprocessed('../data/tripsFractions.csv')
+	#fio = fileio.RawInput('../data/alldata.csv',usePairs=True)
 	#base = [127, 96, 53, 3, 103, 71, 151, 1, 65, 152]
 	#base = [98,336,294,19,205,290,226,211,244,38,9,208,18,35,148,295,341,262,12,210, 233, 338, 0, 320]
 	#base = [98,336,294,19,205,290,226,211,244,38,9,18,35,148,295,341,262,12,210, 233, 0, 320] # seed 1337
@@ -119,25 +119,29 @@ def Predict():
 	#base = [289, 332, 201, 260, 235, 240, 38, 48, 18, 212, 63, 12, 205, 263, 65, 262, 0, 338, 122, 300, 98, 210, 295, 320]
 	#base = [256, 302, 142, 243, 289, 341, 294, 104, 313, 135, 235, 204, 216, 38, 46, 332, 65, 268, 117, 207, 68, 208, 122, 0, 338, 318, 300, 308, 210, 295, 317]  #seed 213
 	#base = [313, 291, 151, 64, 67, 20, 290, 112, 155, 138, 18, 285, 66, 212, 233, 204, 7, 208, 68, 282, 0, 210, 9, 295, 317] # seed 622
-	#base = [201, 294, 260, 67, 220, 235, 7, 176, 290, 48, 309, 156, 66, 263, 138, 262, 35, 18, 233, 208, 240, 338, 0, 210, 9, 295, 317] # seed 410
+	base = [201, 294, 260, 67, 220, 235, 7, 176, 290, 48, 309, 156, 66, 263, 138, 262, 35, 18, 233, 208, 240, 338, 0, 210, 9, 295, 317] # seed 410
 	#base = [73, 8, 13, 68, 56, 11, 61, 36, 57, 34, 33, 66, 84, 1, 80, 2]
-	base = [f for f in xrange(fio.df.shape[1]) if f != 8]
+	#base = [f for f in xrange(fio.df.shape[1]) if f != 8]
 	#for b in base:
 	#	print "%d. %s" %(b,fio.df.columns[b])
 	#return
 	fio.encode(base)
 	train, truth = fio.transformTrain(base)
 	c = classifier.Classifier(train, truth)
-	prefix = 'lib/sgdPairs'
+	prefix = 'lib/blah'
 	c.validate(clf,nFolds=10,out=prefix+'.csv')
 	#score = c.holdout(clf,nFolds=10,fraction=0.2)
 	#print score
 
 	if True:
+		low_ = np.loadtxt('lowSupportTest.csv')
+		lowId = np.array(low_ == 1.)
 		test = fio.transformTest(base)
 		print test.shape
 		clf.fit(train,truth)
 		y_ = clf.predict_proba(test)[:,1]
+		clf.intercept_ -= 2.282769
+		y_[lowId] = clf.predict_proba(test)[lowId,1]
 		writeSubmission(y_,filename=prefix+'Test.csv')
 		return
 
