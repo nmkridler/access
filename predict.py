@@ -2,12 +2,11 @@ import pylab as pl
 import numpy as np
 import pandas as pd
 import plotting
-from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
+
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.cross_validation import StratifiedShuffleSplit
 from sklearn.metrics import roc_curve, auc
-from sklearn.linear_model import LogisticRegression
-from sklearn.qda import QDA
+
 import classifier
 reload(classifier)
 def main():
@@ -15,20 +14,15 @@ def main():
 	featureImportance = False
 	cvfold = True
 	df = pd.read_csv('../data/cprobTrain15NA.csv')
-	#id_ = np.loadtxt('indices.txt',delimiter=',').astype('int')[:60]
-	#X, y = np.array(df), np.array(pd.read_csv('../data/train.csv').ACTION)
+
 	X, y = np.array(pd.read_csv('../data/train.csv',usecols=range(1,9))), np.array(pd.read_csv('../data/train.csv').ACTION)
 	X = np.hstack((X,np.array(df)))
 
 	params = {'max_depth':4, 'subsample':0.5, 'verbose':0, 'random_state':1337,
 		'min_samples_split':10, 'min_samples_leaf':10, 'max_features':10,
 		'n_estimators': 350, 'learning_rate': 0.05}	
-	#params = {'n_estimators':50,'min_samples_split':5,'min_samples_leaf':5,'verbose':True,'n_jobs':2,
-	#	'compute_importances':True, 'random_state':1337}
-	#clf = RandomForestClassifier(**params)
-	#clf = RandomForestRegressor(**params)
+
 	clf = GradientBoostingClassifier(**params)
-	#clf = QDA()
 	prefix = 'lib/gbm350d4m10c15'
 	if cvfold:
 		c = classifier.Classifier(X,y)
@@ -39,7 +33,6 @@ def main():
 		Xt = np.hstack((Xt,np.array(pd.read_csv('../data/cprobTest15NA.csv'))))
 		clf.fit(X,y)
 		y_ = clf.predict_proba(Xt)[:,1]
-		#y_ = clf.predict(Xt)
 		out = pd.read_csv('subs/nbBaseTest.csv')
 		out.ACTION = y_
 		out.to_csv(prefix+'Test.csv',index=False)

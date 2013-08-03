@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-
+# Thanks to Miroslaw for this code!
 __author__ = 'Miroslaw Horbal'
 __email__ = 'miroslaw@gmail.com'
 __date__ = '12-06-2013'
@@ -139,30 +139,16 @@ class NaiveBayesClassifier(object):
 def main(train_file='train.csv', test_file='test.csv', output_file='nb_predict.csv'):
     # Load data
     print 'Loading data...'
-    #base = [3, 4, 17, 10, 123, 129, 292, 32, 9, 2, 7, 76, 5, 429, 663, 427, 308, 594, 13, 22, 279, 107, 360, 15, 557, 16, 583, 431, 23, 19, 724, 27, 425]
-    #base = [15, 557, 16, 583, 431, 23, 19, 724, 27, 425]
-    #base = [289, 332, 201, 260, 235, 240, 38, 48, 18, 212, 63, 12, 205, 263, 65, 262, 0, 338, 122, 300, 98, 210, 295, 320]
-    #base = [313, 291, 151, 64, 67, 20, 290, 112, 155, 138, 18, 285, 66, 212, 233, 204, 7, 208, 68, 282, 0, 210, 9, 295, 317]
-
-    #base = [98,336,294,19,205,290,226,211,244,38,9,18,35,148,295,341,262,12,210, 233, 0, 320] # seed 1337
-    #base = [212,94, 47, 291, 81, 121, 205, 204, 295, 138, 7, 258, 210, 234, 282, 0, 320] # seed 918
-    #base = [240, 38, 48, 18, 212, 63, 12, 205, 263, 65, 262, 0, 338, 122, 300, 98, 210, 295, 320] # SGD
-    #base = [289, 332, 201, 260, 235, 240, 38, 48, 18, 212, 63, 12, 205, 263, 65, 262, 0, 338, 122, 300, 98, 210, 295, 320]
-    #base = [256, 302, 142, 243, 289, 341, 294, 104, 313, 135, 235, 204, 216, 38, 46, 332, 65, 268, 117, 207, 68, 208, 122, 0, 338, 318, 300, 308, 210, 295, 317]  #seed 213
-    #base = [313, 291, 151, 64, 67, 20, 290, 112, 155, 138, 18, 285, 66, 212, 233, 204, 7, 208, 68, 282, 0, 210, 9, 295, 317] # seed 622
     base = [201, 294, 260, 67, 220, 235, 7, 176, 290, 48, 309, 156, 66, 263, 138, 262, 35, 18, 233, 208, 240, 338, 0, 210, 9, 295, 317] # seed 410
     allData = pd.read_csv(train_file,usecols=base)
     
     X = np.array(allData.ix[:32769,:])
     X_test = np.array(allData.ix[32769:,:])
     y = np.array(pd.read_csv('../data/train.csv',usecols=[0]).ACTION)
-    #X = np.array(train_data.ix[:,1:-1])     # Ignores ACTION, ROLE_CODE
-    #X_test = np.array(test_data.ix[:,1:-1]) # Ignores ID, ROLE_CODE
+
     
     # Convert features to triples
     print 'Transforming data...'
-    #X = group_data(X)
-    #X_test = group_data(X_test)
     model = NaiveBayesClassifier(alpha=1e-2)#1e-10)
     
     nFolds = 10

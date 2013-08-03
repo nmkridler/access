@@ -6,7 +6,7 @@ from sklearn.preprocessing import OneHotEncoder
 
 NUMTRAIN = 32769
 NUMTEST = 58921
-IGNORETHESE = ['RESOURCE.MGR_ID.ROLE_ROLLUP_1', 'RESOURCE.MGR_ID.ROLE_FAMILY', 'RESOURCE.ROLE_FAMILY_DESC.ROLE_FAMILY']
+
 def addIDColumn(df):
 	"""Add an id column for joining later"""
 	df['ID'] = map(lambda x: "%s.%06i"%(x[0],x[1]),
@@ -56,8 +56,8 @@ def sortAndMerge(df,key,fraction=0.42):
 				break
 		index[counts:] = counts
 
-	#suffix = 'Ids%03i'%(int(fraction*100))
-	suffix = 'Ids'
+	suffix = 'Ids%03i'%(int(fraction*100))
+	#suffix = 'Ids'
 	df = pd.merge(df,
 		pd.DataFrame({key:y.index,key+suffix:index}),
 		how='inner',on=key,sort=False)
@@ -127,7 +127,6 @@ def threshold(df, fraction=1.0):
 		df = sortAndMerge(df,c,fraction=fraction)
 
 	df = df.ix[:,[c for c in df.columns if c not in h]]
-	#df = df.rename(columns=col)
 	return df
 
 class Fileio(object):
@@ -144,20 +143,18 @@ class Fileio(object):
 	def encode(self,usecols):
 		self.encoder.fit(np.array(self.df.ix[:,usecols],dtype='float'))
 
-	def transformTrain(self,cols):
+	def transformTrain(self,cols,idCol=8):
 		""" Transform the training set"""
-		#df = pd.read_csv(filename,usecols=range(9))
-		#df['ID'] = map(lambda x: "%s.%06i"%(x[0],x[1]), zip(['train']*NUMTRAIN, range(NUMTRAIN)))
 	
-		x = pd.merge(self.trainDF,self.df.ix[:,[8]+cols],how='left',on='ID',sort=False)
+		x = pd.merge(self.trainDF,self.df.ix[:,[idCol]+cols],how='left',on='ID',sort=False)
 		ignore = ['ID','ACTION']
 		usecols = [c for c in x.columns if c not in ignore]
 		return self.encoder.transform(np.array(x.ix[:,usecols],dtype='float')), np.array(x.ACTION)
 
-	def transformTest(self,cols):
+	def transformTest(self,cols,idCol=8):
 		""" Transform the testing set"""
 
-		x = pd.merge(self.testDF.ix[:,['ID','ROLL_CODE']],self.df.ix[:,[8]+cols]
+		x = pd.merge(self.testDF.ix[:,['ID','ROLL_CODE']],self.df.ix[:,[idCol]+cols]
 			,how='left',on='ID',sort=False)
 		ignore = ['ID','ROLL_CODE']
 		usecols = [c for c in x.columns if c not in ignore]
@@ -169,7 +166,7 @@ class RawInput(Fileio):
 		Fileio.__init__(self,train,test)
 		df = pd.read_csv(filename)
 
-		x = [1] #np.linspace(.1,1.,10)
+		x = [0.25,0.5,0.75,1.]
 		for xx in x:
 			self.df = threshold(df.copy(),fraction=xx)
 
@@ -183,15 +180,10 @@ class RawInput(Fileio):
 			for xx in x:
 				self.df = pd.merge(self.df,addTrigrams(df.copy(),trips,fraction=xx),how='inner',on='ID')
 
-		#base = [8, 315, 344, 293, 798, 310, 739, 547, 511, 794,105,500, 709, 122, 74, 7, 362, 28, 596, 737,845, 546, 748, 0, 706, 618, 37, 799, 600]
-		#self.df = self.df.ix[:,base]
 		if useQuads:
 			quads = buildQuads(df.columns)
 			for xx in x:
 				self.df = pd.merge(self.df,add4grams(df.copy(),quads,fraction=xx),how='inner',on='ID')
-			#self.df = pd.merge(self.df,add4grams(df.copy(),quads,fraction=0.50),how='inner',on='ID')
-			#self.df = pd.merge(self.df,add4grams(df.copy(),quads,fraction=0.75),how='inner',on='ID')
-			#self.df = pd.merge(self.df,add4grams(df.copy(),quads,fraction=1.00),how='inner',on='ID')
 
 class Preprocessed(Fileio):
 	""" Preprocessed data """
